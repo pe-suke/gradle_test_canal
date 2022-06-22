@@ -1,0 +1,56 @@
+plugins {
+    id 'java'
+}
+
+group 'org.example'
+version '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.1'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.1'
+}
+
+test {
+    useJUnitPlatform()
+}
+
+def makeBuildKenModuleTask(menNo, project) {
+    task "buildKen${menNo}Module"(type: GradleBuild) {
+        group = "(検証環境(${menNo}面)用モジュールビルド)"
+        description = "検証環境 ${menNo}面用モジュールのビルド"
+
+        startParameter.excludedTaskNames = ['testClasses', 'processTestResources', 'test']
+
+        tasks = [':' + project + ':clean', ':' + project + ':build']
+
+        doFirst {
+            println "検証環境${menNo}面用モジュールのビルドを開始します"
+        }
+        doLast {
+            println "検証環境${menNo}面用モジュールのビルドを完了しました"
+        }
+
+        gradle.taskGraph.whenReady {
+            gradle.taskGraph.getAllTasks().forEach {
+                task -> if (startParameter.excludedTaskNames.contains(task.name)) {
+                    println(task.name)
+                    task.setEnabled(false)
+                }
+            }
+        }
+
+    }
+}
+
+tasks {
+    task "makeAllModuleTasks"(type: GradleBuild) {
+        for (men in [1, 2]) {
+            makeBuildKenModuleTask(men, "project${men}")
+        }
+    }
+
+}
